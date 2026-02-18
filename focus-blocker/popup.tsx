@@ -33,16 +33,26 @@ function IndexPopup() {
   const [activeTab, setActiveTab] = useState<"recommend" | "options">(
     "recommend"
   )
+  const [recommendSelected, setRecommendSelected] = useState<Set<string>>(
+    new Set()
+  )
+  const [lastRecommendKeys, setLastRecommendKeys] = useState<string | null>(null)
 
   useEffect(() => {
     chrome.storage.local.get(
-      { blockedDomains: DEFAULT_DOMAINS },
+      { blockedDomains: DEFAULT_DOMAINS, hasOpenedPopup: false },
       (result) => {
         setDomains(
           Array.isArray(result.blockedDomains)
             ? result.blockedDomains
             : DEFAULT_DOMAINS
         )
+        if (!result.hasOpenedPopup) {
+          setActiveTab("recommend")
+          chrome.storage.local.set({ hasOpenedPopup: true })
+        } else {
+          setActiveTab("options")
+        }
       }
     )
 
@@ -62,6 +72,32 @@ function IndexPopup() {
     () => new Set(domains.map((domain) => normalizeDomain(domain))),
     [domains]
   )
+
+  const availableRecommended = useMemo(
+    () =>
+      RECOMMENDED_DOMAINS.filter(
+        (domain) => !domainSet.has(normalizeDomain(domain))
+      ),
+    [domainSet]
+  )
+  const availableKey = useMemo(
+    () => availableRecommended.map((domain) => normalizeDomain(domain)).join(","),
+    [availableRecommended]
+  )
+
+  useEffect(() => {
+    if (!availableRecommended.length) {
+      setRecommendSelected(new Set())
+      setLastRecommendKeys(availableKey)
+      return
+    }
+    if (lastRecommendKeys === null || lastRecommendKeys !== availableKey) {
+      setRecommendSelected(
+        new Set(availableRecommended.map((domain) => normalizeDomain(domain)))
+      )
+      setLastRecommendKeys(availableKey)
+    }
+  }, [availableRecommended, availableKey, lastRecommendKeys])
 
   const saveDomains = (nextDomains: string[]) => {
     setDomains(nextDomains)
@@ -83,10 +119,29 @@ function IndexPopup() {
     saveDomains(domains.filter((item) => normalizeDomain(item) !== normalized))
   }
 
-  const addRecommended = (domain: string) => {
+  const toggleRecommend = (domain: string) => {
     const normalized = normalizeDomain(domain)
-    if (!normalized || domainSet.has(normalized)) return
-    saveDomains([...domains, normalized])
+    setRecommendSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(normalized)) {
+        next.delete(normalized)
+      } else {
+        next.add(normalized)
+      }
+      return next
+    })
+  }
+
+  const addAllRecommended = () => {
+    if (recommendSelected.size === 0) return
+    const merged = Array.from(
+      new Set([
+        ...domains.map((domain) => normalizeDomain(domain)),
+        ...Array.from(recommendSelected)
+      ])
+    ).filter(Boolean)
+    saveDomains(merged)
+    setRecommendSelected(new Set())
   }
 
   const openMore = () => {
@@ -118,21 +173,35 @@ function IndexPopup() {
         </button>
       </div>
       {activeTab === "recommend" && (
-        <div className="popup__list">
-          {RECOMMENDED_DOMAINS.map((domain) => (
-            <div className="popup__item" key={domain}>
-              <span className="popup__domain">{domain}</span>
-              <button
-                className={`popup__action ${
-                  domainSet.has(normalizeDomain(domain)) ? "is-disabled" : ""
-                }`}
-                onClick={() => addRecommended(domain)}
-                disabled={domainSet.has(normalizeDomain(domain))}>
-                添加
-              </button>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="popup__recommend">
+            <div className="popup__recommend-title">推荐域名</div>
+            <button
+              className="popup__button"
+              onClick={addAllRecommended}
+              disabled={recommendSelected.size === 0}>
+              一键添加
+            </button>
+          </div>
+          <div className="popup__list">
+            {availableRecommended.map((domain) => (
+              <div className="popup__item" key={domain}>
+                <label className="popup__checkbox">
+                  <input
+                    type="checkbox"
+                    checked={recommendSelected.has(normalizeDomain(domain))}
+                    onChange={() => toggleRecommend(domain)}
+                  />
+                  <span className="popup__checkmark" />
+                  <span className="popup__domain">{domain}</span>
+                </label>
+              </div>
+            ))}
+            {availableRecommended.length === 0 && (
+              <div className="popup__empty">暂无推荐</div>
+            )}
+          </div>
+        </>
       )}
       {activeTab === "options" && (
         <>
