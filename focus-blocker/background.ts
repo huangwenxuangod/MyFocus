@@ -8,21 +8,39 @@ let focusRequiredMs = DEFAULT_FOCUS_REQUIRED_MS
 let unlockDurationMs = DEFAULT_UNLOCK_DURATION_MS
 let remainingFocusMs = DEFAULT_FOCUS_REQUIRED_MS
 let focusStartedAt: number | null = null
-let unlockEndsAt: number | null = null
+let unlockRemainingMs = 0
+let unlockLastTickAt: number | null = null
+let activeTabId: number | null = null
+const tabBlockedVisible = new Map<number, boolean>()
 
 const completeUnlock = (now: number) => {
   mode = "unlocked"
   remainingFocusMs = 0
-  unlockEndsAt = now + unlockDurationMs
+  unlockRemainingMs = unlockDurationMs
+  unlockLastTickAt = now
   focusStartedAt = null
 }
 
+const getActiveBlocked = () => {
+  if (activeTabId === null) return false
+  return tabBlockedVisible.get(activeTabId) === true
+}
+
 const normalizeState = (now: number) => {
-  if (mode === "unlocked" && unlockEndsAt && now >= unlockEndsAt) {
-    mode = "locked"
-    remainingFocusMs = focusRequiredMs
-    unlockEndsAt = null
-    focusStartedAt = null
+  if (mode === "unlocked") {
+    if (unlockLastTickAt !== null) {
+      if (getActiveBlocked()) {
+        unlockRemainingMs -= now - unlockLastTickAt
+      }
+    }
+    unlockLastTickAt = now
+    if (unlockRemainingMs <= 0) {
+      mode = "locked"
+      remainingFocusMs = focusRequiredMs
+      unlockRemainingMs = 0
+      unlockLastTickAt = null
+      unlockEndsAt = null
+    }
   }
 }
 
@@ -40,7 +58,7 @@ const getStatus = () => {
   return {
     mode,
     remainingFocusMs: Math.max(0, Math.ceil(remaining)),
-    unlockEndsAt
+    unlockRemainingMs: Math.max(0, Math.ceil(unlockRemainingMs))
   }
 }
 
@@ -48,7 +66,8 @@ const startFocusChallenge = () => {
   if (mode !== "locked") return getStatus()
   mode = "focusing"
   remainingFocusMs = focusRequiredMs
-  unlockEndsAt = null
+  unlockRemainingMs = 0
+  unlockLastTickAt = null
   focusStartedAt = Date.now()
   return getStatus()
 }
@@ -103,5 +122,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
+  if (message?.type === "tabState" && sender.tab?.id) {
+    tabBlockedVisible.set(sender.tab.id, !!message.isBlocked && !!message.isVisible)
+    if (activeTabId === sender.tab.id) {
+      normalizeState(Date.now())
+    }
+    return true
+  }
+
   return false
+})
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  activeTabId = tabId
+  normalizeState(Date.now())
+})
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabBlockedVisible.delete(tabId)
+  if (activeTabId === tabId) {
+    activeTabId = null
+  }
 })

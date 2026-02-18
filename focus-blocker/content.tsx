@@ -102,10 +102,38 @@ const useBlockedDomains = () => {
   return domains
 }
 
+const useTabState = (isBlocked: boolean) => {
+  useEffect(() => {
+    const report = () => {
+      chrome.runtime.sendMessage({
+        type: "tabState",
+        isBlocked,
+        isVisible: document.visibilityState === "visible"
+      })
+    }
+
+    report()
+    const onVisibility = () => report()
+    const onFocus = () => report()
+    const onBlur = () => report()
+
+    document.addEventListener("visibilitychange", onVisibility)
+    window.addEventListener("focus", onFocus)
+    window.addEventListener("blur", onBlur)
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility)
+      window.removeEventListener("focus", onFocus)
+      window.removeEventListener("blur", onBlur)
+    }
+  }, [isBlocked])
+}
+
 const Overlay = () => {
   const status = useStatus()
   const domains = useBlockedDomains()
   const isBlocked = isBlockedHost(window.location.hostname, domains)
+  useTabState(isBlocked)
 
   const shouldShow = status.mode !== "unlocked" && isBlocked
   const isLocked = status.mode === "locked"
