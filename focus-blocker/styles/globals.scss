@@ -75,7 +75,6 @@ body {
 
 .popup__input:focus {
   outline: none;
-  border-color: #111;
 }
 
 .popup__button {
@@ -211,6 +210,49 @@ body {
   border: 1px solid #ededf1;
   border-radius: 16px;
   padding: 20px;
+}
+
+.page__section {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ededf1;
+  margin-bottom: 16px;
+}
+
+.page__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.page__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.page__label {
+  font-size: 13px;
+  color: #444;
+}
+
+.page__input {
+  width: 120px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: #f7f7f8;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #111;
+  text-align: right;
+}
+
+.page__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
 
 .page__form {

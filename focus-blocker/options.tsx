@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react"
 import "./styles/globals.scss"
 
 const DEFAULT_DOMAINS = ["bilibili.com", "b23.tv"]
+const DEFAULT_FOCUS_MINUTES = 60
+const DEFAULT_UNLOCK_MINUTES = 10
 
 const normalizeDomain = (value: string) => {
   const trimmed = value.trim().toLowerCase()
@@ -20,16 +22,28 @@ const normalizeDomain = (value: string) => {
 function OptionsPage() {
   const [domains, setDomains] = useState<string[]>(DEFAULT_DOMAINS)
   const [inputValue, setInputValue] = useState("")
+  const [focusMinutes, setFocusMinutes] = useState(DEFAULT_FOCUS_MINUTES)
+  const [unlockMinutes, setUnlockMinutes] = useState(DEFAULT_UNLOCK_MINUTES)
 
   useEffect(() => {
     chrome.storage.local.get(
-      { blockedDomains: DEFAULT_DOMAINS },
+      {
+        blockedDomains: DEFAULT_DOMAINS,
+        focusRequiredMinutes: DEFAULT_FOCUS_MINUTES,
+        unlockMinutes: DEFAULT_UNLOCK_MINUTES
+      },
       (result) => {
         setDomains(
           Array.isArray(result.blockedDomains)
             ? result.blockedDomains
             : DEFAULT_DOMAINS
         )
+        if (typeof result.focusRequiredMinutes === "number") {
+          setFocusMinutes(result.focusRequiredMinutes)
+        }
+        if (typeof result.unlockMinutes === "number") {
+          setUnlockMinutes(result.unlockMinutes)
+        }
       }
     )
 
@@ -38,6 +52,12 @@ function OptionsPage() {
     ) => {
       if (changes.blockedDomains?.newValue) {
         setDomains(changes.blockedDomains.newValue)
+      }
+      if (typeof changes.focusRequiredMinutes?.newValue === "number") {
+        setFocusMinutes(changes.focusRequiredMinutes.newValue)
+      }
+      if (typeof changes.unlockMinutes?.newValue === "number") {
+        setUnlockMinutes(changes.unlockMinutes.newValue)
       }
     }
 
@@ -70,6 +90,17 @@ function OptionsPage() {
     saveDomains(domains.filter((item) => normalizeDomain(item) !== normalized))
   }
 
+  const saveTimeSettings = () => {
+    const nextFocus = Math.max(1, Math.floor(focusMinutes))
+    const nextUnlock = Math.max(1, Math.floor(unlockMinutes))
+    setFocusMinutes(nextFocus)
+    setUnlockMinutes(nextUnlock)
+    chrome.storage.local.set({
+      focusRequiredMinutes: nextFocus,
+      unlockMinutes: nextUnlock
+    })
+  }
+
   return (
     <div className="page">
       <div className="page__header">
@@ -77,6 +108,38 @@ function OptionsPage() {
         <div className="page__subtitle">专注域名设置</div>
       </div>
       <div className="page__card">
+        <div className="page__section">
+          <div className="page__section-title">专注时长设置</div>
+          <div className="page__row">
+            <div className="page__label">专注时间（分钟）</div>
+            <input
+              className="page__input"
+              type="number"
+              min={1}
+              value={focusMinutes}
+              onChange={(event) =>
+                setFocusMinutes(Number(event.target.value))
+              }
+            />
+          </div>
+          <div className="page__row">
+            <div className="page__label">可观看时长（分钟）</div>
+            <input
+              className="page__input"
+              type="number"
+              min={1}
+              value={unlockMinutes}
+              onChange={(event) =>
+                setUnlockMinutes(Number(event.target.value))
+              }
+            />
+          </div>
+          <div className="page__actions">
+            <button className="popup__button" onClick={saveTimeSettings}>
+              保存设置
+            </button>
+          </div>
+        </div>
         <div className="page__form">
           <input
             className="popup__input"
