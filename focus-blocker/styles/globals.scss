@@ -16,6 +16,9 @@ body {
 
 .popup__header {
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .popup__title {
@@ -23,15 +26,40 @@ body {
   font-weight: 600;
 }
 
-.popup__subtitle {
+.popup__more {
   font-size: 12px;
   color: #6b6b6b;
-  margin-top: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.popup__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.popup__tab {
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #e3e3e6;
+  background: #fff;
+  color: #444;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.popup__tab.is-active {
+  border-color: #111;
+  color: #111;
 }
 
 .popup__form {
   display: flex;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
 .popup__input {
@@ -62,7 +90,6 @@ body {
 }
 
 .popup__list {
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -89,4 +116,57 @@ body {
   color: #7a7a7a;
   font-size: 12px;
   cursor: pointer;
+}
+
+.popup__action {
+  border: 1px solid #e3e3e6;
+  background: #fff;
+  color: #222;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.popup__action.is-disabled {
+  color: #9a9a9a;
+  border-color: #ededf1;
+  cursor: default;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 32px 20px 48px;
+  background: #f7f7f8;
+}
+
+.page__header {
+  max-width: 720px;
+  margin: 0 auto 16px;
+}
+
+.page__title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.page__subtitle {
+  font-size: 13px;
+  color: #6b6b6b;
+  margin-top: 6px;
+}
+
+.page__card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #ededf1;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.page__form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
 }
